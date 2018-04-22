@@ -4,7 +4,8 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "tsc"
   },
   "preferGlobal": true,
   "bin": "./bin/jira-cli",
@@ -27,5 +28,8 @@
     "ora": "^2.0.0",
     "superagent": "^3.8.2",
     "superagent-logger": "^1.1.0"
+  },
+  "devDependencies": {
+    "typescript": "^2.8.3"
   }
 }
