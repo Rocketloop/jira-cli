@@ -13,10 +13,21 @@ commander.command('backlog <project>').action((project) => {
 });
 
 commander.command('board <project>')
+         .description('Display the current sprint of the primary board of the specified project')
          .option('-m, --mine', 'Only show issues assigned to me')
          .action((project, cmd) => {
              getApp().then(app => {
                  app.board(project, cmd.mine);
+             });
+         });
+
+commander.command('worklog')
+         .description('Display the worklog of a given user for a given day')
+         .option('-u, --user <user>', 'Specified which user the work logs should be shown for, default to the current user')
+         .option('-d, --date <date>', 'Specifies which date the work logs should be shown for, defaults to today')
+         .action((cmd) => {
+             getApp().then(app => {
+                 app.worklog(cmd.user, cmd.date);
              });
          });
 

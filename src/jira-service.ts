@@ -1,7 +1,9 @@
 import { JiraApi } from './jira-api';
+import * as _ from 'lodash';
 import ora = require('ora');
 import moment = require('moment');
 
+const MAX_RESULT_MAX = 1048576;
 
 export class JiraService {
 
@@ -99,6 +101,82 @@ export class JiraService {
                             });
         ora.promise(promise, `Adding work log`);
         return promise;
+    }
+
+    getCurrentUser() {
+        const promise = this.api.get('/rest/auth/1/session')
+                            .then(result => {
+                                return result.body;
+                            });
+        ora.promise(promise, 'Fetching current user');
+        return promise;
+    }
+
+    getIssuesWorkedOn(user: string, date: moment.Moment, fields?: string) {
+        const promise = this.api.get('/rest/api/2/search').query({
+            'jql': `worklogAuthor = '${user}' AND worklogDate = '${date.format('YYYY-MM-DD')}'`,
+            'fields': fields
+        }).then(res => {
+            return res.body.issues;
+        });
+        ora.promise(promise, 'Fetching worked on issues');
+        return promise;
+    }
+
+    getWorklogsForIssue(issueId: string, showSpinner = true) {
+        const promise = this.api.get(`/rest/api/2/issue/${issueId}/worklog`).query({
+            'maxResults': MAX_RESULT_MAX
+        }).then(result => {
+            return result.body;
+        });
+        if (showSpinner) ora.promise(promise, 'Fetching worklog for issue');
+        return promise;
+    }
+
+    getWorklogsForIssues(issueIds: string[]) {
+        const promise = Promise.all(issueIds.map(issueId => this.getWorklogsForIssue(issueId, false)));
+        ora.promise(promise, 'Fetching worklog for issues');
+        return promise;
+    }
+
+    getWorklogsForUser(user: string, date: moment.Moment) {
+        const isCurrentUser = (!user || user === 'me');
+        const getCurrentUserPromise = (isCurrentUser) ? this.getCurrentUser() : Promise.resolve();
+        let userName;
+        return getCurrentUserPromise.then(currentUser => {
+            userName = (isCurrentUser) ? currentUser.name : user;
+            return this.getIssuesWorkedOn(userName, date, 'key');
+        }).then(issues => {
+            return this.getWorklogsForIssues(issues.map(issue => issue.key))
+                          .then((logs: any[]) => {
+                              return _.zipWith<any, any>(issues, logs, (issue, worklog) => {
+                                  return {
+                                      issue,
+                                      worklogs: worklog.worklogs
+                                  };
+                              });
+                          });
+        }).then(issueWorklogs => {
+            const worklogsByWithIssue = issueWorklogs.reduce((logs, issueWorklog) => {
+                return [
+                    ...logs, ...(issueWorklog.worklogs
+                                             .map(worklog => {
+                                                 return {
+                                                     ...worklog,
+                                                     issue: issueWorklog.issue,
+                                                     started: moment(worklog.started)
+                                                 };
+                                             })
+                                             .filter(worklog => {
+                                                 return worklog.author.name === userName
+                                                     && worklog.started.isSame(date, 'day');
+                                             }))
+                ].sort((a, b) => {
+                    return a.started.isBefore(b.started) ? -1 : 1;
+                });
+            }, []);
+            return worklogsByWithIssue;
+        });
     }
 
 }

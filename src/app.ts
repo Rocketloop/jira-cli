@@ -4,6 +4,10 @@ import * as CliTable2 from 'cli-table2';
 import { bold } from 'colors/safe';
 import Conf = require('conf');
 import * as inquirer from 'inquirer';
+import moment = require('moment');
+import chrono = require('chrono-node');
+import { displayNumber, displayText } from './display.helper';
+
 
 export class App {
 
@@ -62,6 +66,41 @@ export class App {
                     }
                 }));
             }
+            console.log(table.toString());
+        });
+    }
+
+    worklog(user = 'me', date?: string) {
+        const parsedDate = (date) ? moment(chrono.parseDate(date)) : moment();
+        this.service.getWorklogsForUser(user, parsedDate).then(worklogs => {
+            const maxWidth = (process.stdout.columns || 80) - 5;
+            const maxLineWidth = worklogs.reduce((maxLine, worklog) => {
+                return worklog.comment.split('\r\n').reduce((maxLine, line) => {
+                    return Math.max(maxLine, line.length);
+                }, maxLine);
+            }, 0);
+            const commentWidth = Math.min(Math.max(maxWidth - 44, 0), maxLineWidth + 2);
+            const table: Array<any> = new CliTable2({
+                head: ['Time', 'Duration', 'Issue', 'Description'],
+                colWidths: [22, 10, 12, commentWidth]
+            });
+            let totalTime = 0;
+            worklogs.forEach(worklog => {
+                const duration = moment.duration(worklog.timeSpentSeconds, 'seconds');
+                table.push([
+                    `${worklog.started.format('LT')} - ${worklog.started.add(worklog.timeSpentSeconds, 'seconds').format('LT')}`,
+                    `${displayNumber(duration.asHours())}h`,
+                    worklog.issue.key,
+                    displayText(worklog.comment.replace(/\r/g, ''), commentWidth - 2)]);
+                totalTime += worklog.timeSpentSeconds;
+            });
+            const duration = moment.duration(totalTime, 'seconds');
+            table.push([
+                bold('Total'),
+                bold(`${displayNumber(duration.asHours())}h`),
+                '',
+                ''
+            ]);
             console.log(table.toString());
         });
     }
