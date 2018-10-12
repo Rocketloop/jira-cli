@@ -8,11 +8,26 @@ function getApp(isLogin = false): Promise<App> {
 }
 
 commander.command('login')
-         .description('login')
+         .description('Enter Jira credentials')
          .option('-f, --force', 'Force the CLI to overwrite the current login information')
          .action((cmd) => {
              getApp(true).then(app => {
                  app.login(cmd.force);
+             });
+         });
+
+commander.command('logout')
+         .description('Reset the previously entered Jira credentials')
+         .option('-s, --silent', 'Proceedes without user input')
+         .action((cmd)=> {
+             getApp(true).then( async app=> {
+                 if (app.config.size === 0) {
+                     return;
+                 }
+                 if(cmd.silent || await app.askYesNoPrompt()) {
+                     app.resetConfig();
+                     console.log('✅ Logged out');
+                 }
              });
          });
 
@@ -62,22 +77,6 @@ commander.command('log <issue> <duration>')
                      console.log('Please enter a valid duration.');
                  }
              });
-         });
-
-commander.command('reset-config')
-         .description('Resets your user configuration')
-         .option('-s, --silent', 'Proceedes without user input')
-         .action((cmd)=> {
-            getApp(true).then( async app=> {
-                if (app.config.size==0){
-                    return;
-                }
-                if(cmd.silent || await app.askYesNoPrompt())
-                {
-                    app.resetConfig();
-                    console.log('✅ Resetted config');
-                }
-            });
          });
 
 commander.parse(process.argv);

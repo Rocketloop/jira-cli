@@ -184,12 +184,13 @@ export class App {
     public askYesNoPrompt(): Promise<boolean> {
         return inquirer.prompt<any>([
             {
-                type:'input',
+                type:'confirm',
                 name:'continue',
-                message: 'Are you sure you want to procced [y/N]'
+                message: 'Are you sure you want to procced',
+                default: false
             }
         ]).then(answers => {
-            return answers.continue && answers.continue.toString().toLowerCase() === 'y';
+            return answers.continue;
         });
     }
 
