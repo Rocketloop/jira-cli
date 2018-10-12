@@ -169,7 +169,7 @@ export class App {
                 }
             ]).then(answers => {
                 this.config.set('api', answers);
-                this.config.set('initialized', true);
+                this.config.set('loggedIn', true);
             });
         } else {
             console.log('CLI already initialized. To overwrite current config, rerun with \'--force\'');
@@ -177,10 +177,26 @@ export class App {
         }
     }
 
+    public resetConfig(): void {
+        this.config.clear();
+    }
+
+    public askYesNoPrompt(): Promise<boolean> {
+        return inquirer.prompt<any>([
+            {
+                type:'confirm',
+                name:'continue',
+                message: 'Are you sure you want to procced',
+                default: false
+            }
+        ]).then(answers => {
+            return answers.continue;
+        });
+    }
+
+
     private _loadConfig(isLogin: boolean): Promise<Conf> {
-        this.config = new Conf({
-            encryptionKey: 'sdfyu7y3irfsov869wuvut7sdiyfuk'
-        } as any);
+        this.config = new Conf();
         const loggedIn = this.config.get('loggedIn');
         if (!loggedIn && !isLogin) {
             return this.login().then(_ => this.config);

@@ -2,16 +2,32 @@ import * as commander from 'commander';
 import { App } from './app';
 import { parsedDurationToSeconds, parseDuration, parseTimeOfDay } from './time.helper';
 
+
 function getApp(isLogin = false): Promise<App> {
     return new App().initialize(isLogin);
 }
 
 commander.command('login')
-         .description('login')
+         .description('Enter Jira credentials')
          .option('-f, --force', 'Force the CLI to overwrite the current login information')
          .action((cmd) => {
              getApp(true).then(app => {
                  app.login(cmd.force);
+             });
+         });
+
+commander.command('logout')
+         .description('Reset the previously entered Jira credentials')
+         .option('-s, --silent', 'Proceedes without user input')
+         .action((cmd)=> {
+             getApp(true).then( async app=> {
+                 if (app.config.size === 0) {
+                     return;
+                 }
+                 if(cmd.silent || await app.askYesNoPrompt()) {
+                     app.resetConfig();
+                     console.log('✅ Logged out');
+                 }
              });
          });
 
