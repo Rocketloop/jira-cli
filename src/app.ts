@@ -178,9 +178,7 @@ export class App {
      * @private
      */
     private _loadConfig(): Promise<Conf> {
-        this.config = new Conf({
-            encryptionKey: 'sdfyu7y3irfsov869wuvut7sdiyfuk'
-        } as any);
+        this.config = new Conf();
         const initialized = this.config.get('initialized');
         if (!initialized) {
             return this.init().then(_ => this.config);
