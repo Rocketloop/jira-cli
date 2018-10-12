@@ -35,8 +35,8 @@ export class App {
     /**
      * Initialize the application
      */
-    initialize(): Promise<App> {
-        return this._loadConfig().then(() => {
+    initialize(isLogin: boolean): Promise<App> {
+        return this._loadConfig(isLogin).then(() => {
             this._initializeApi();
             this._initializeService();
             return this;
@@ -49,8 +49,8 @@ export class App {
      */
     backlog(project: string) {
         this.service.getSprintsForProject(project).then(sprints => {
-                return sprints.filter(sprint => sprint.state !== 'closed')
-            })
+            return sprints.filter(sprint => sprint.state !== 'closed')
+        })
             .then(sprints => {
                 const table: Array<any> = new CliTable2({
                     head: ['ID', 'Sprint']
@@ -73,7 +73,7 @@ export class App {
             const table: Array<any> = new CliTable2({
                 head: board.map(column => column.name),
                 colWidths: board.map(column => {
-                    return Math.round(maxWidth/board.length);
+                    return Math.round(maxWidth / board.length);
                 })
             });
             const maxIssues = board.reduce((max, column) => {
@@ -149,39 +149,41 @@ export class App {
     /**
      * Guide the user through the initial setup
      */
-    init(): Promise<string> {
-        return inquirer.prompt([
-            {
-                type: 'input',
-                name: 'url',
-                message: 'Enter your Jira URL'
-            },
-            {
-                type: 'input',
-                name: 'username',
-                message: 'Enter your Jira username'
-            },
-            {
-                type: 'password',
-                name: 'password',
-                message: 'Enter your Jira password'
-            }
-        ]).then(answers => {
-            this.config.set('api', answers);
-            this.config.set('initialized', true);
-            return 'Initialization successful';
-        });
+    login(force?: boolean): Promise<void> {
+        if (!this.config.get('loggedIn') || force) {
+            return inquirer.prompt([
+                {
+                    type: 'input',
+                    name: 'url',
+                    message: 'Enter your Jira URL'
+                },
+                {
+                    type: 'input',
+                    name: 'username',
+                    message: 'Enter your Jira username'
+                },
+                {
+                    type: 'password',
+                    name: 'password',
+                    message: 'Enter your Jira password'
+                }
+            ]).then(answers => {
+                this.config.set('api', answers);
+                this.config.set('initialized', true);
+            });
+        } else {
+            console.log('CLI already initialized. To overwrite current config, rerun with \'--force\'');
+            return Promise.resolve();
+        }
     }
 
-    /**
-     * Load the config from the config dir and return it in a Promise
-     * @private
-     */
-    private _loadConfig(): Promise<Conf> {
-        this.config = new Conf();
-        const initialized = this.config.get('initialized');
-        if (!initialized) {
-            return this.init().then(_ => this.config);
+    private _loadConfig(isLogin: boolean): Promise<Conf> {
+        this.config = new Conf({
+            encryptionKey: 'sdfyu7y3irfsov869wuvut7sdiyfuk'
+        } as any);
+        const loggedIn = this.config.get('loggedIn');
+        if (!loggedIn && !isLogin) {
+            return this.login().then(_ => this.config);
         } else {
             return Promise.resolve(this.config);
         }
