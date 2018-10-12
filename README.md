@@ -29,11 +29,20 @@ Usage: jira-cli [options] [command]
 
     -h, --help                        output usage information
 
-  Commands:
+```
 
-    backlog <project>
-    board [options] <project>
-    log [options] <issue> <duration>  Create a new worklog entry for the given issue
+### Login 
+
+```
+Usage: jira-cli login [options]
+
+  login
+
+  Options:
+
+    -f, --force  Force the CLI to overwrite the current login information
+    -h, --help   output usage information
+
 ```
 
 ### Board
