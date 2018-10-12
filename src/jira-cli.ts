@@ -2,8 +2,8 @@ import * as commander from 'commander';
 import { App } from './app';
 import { parsedDurationToSeconds, parseDuration, parseTimeOfDay } from './time.helper';
 
-function getApp(): Promise<App> {
-    return new App().initialize();
+function getApp(skipConfigRequest:boolean = false): Promise<App> {
+    return new App().initialize(skipConfigRequest);
 }
 
 commander.command('backlog <project>').action((project) => {
@@ -52,5 +52,20 @@ commander.command('log <issue> <duration>')
              });
          });
 
+commander.command('reset-config')
+         .description('Resets your user configuration')
+         .option('-s, --silent', 'Proceedes without user input')
+         .action((cmd)=> {
+            getApp(true).then( async app=> {
+                if (app.config.size==0){
+                    return;
+                }
+                if(cmd.silent || await app.askYesNoPrompt())
+                {
+                    app.resetConfig();
+                    console.log('✅ Resetted config');
+                }
+            });
+         });
 
 commander.parse(process.argv);

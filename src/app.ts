@@ -21,8 +21,8 @@ export class App {
 
     }
 
-    initialize(): Promise<App> {
-        return this._loadConfig().then(() => {
+    initialize(skipConfigRequest:boolean = false): Promise<App> {
+        return this._loadConfig(skipConfigRequest).then(() => {
             this._initializeApi();
             this._initializeService();
             return this;
@@ -135,16 +135,32 @@ export class App {
         });
     }
 
-    private _loadConfig(): Promise<Conf> {
+    public askYesNoPrompt(): Promise<boolean> {
+        return inquirer.prompt<any>([
+            {
+                type:'input',
+                name:'continue',
+                message: 'Are you sure you want to procced [y/N]'
+            }
+        ]).then(answers => {
+            return answers.continue && answers.continue.toString().toLowerCase() === 'y';
+        });
+    }
+
+    private _loadConfig(skipConfigInput:boolean = false): Promise<Conf> {
         this.config = new Conf({
             encryptionKey: 'sdfyu7y3irfsov869wuvut7sdiyfuk'
         } as any);
         const initialized = this.config.get('initialized');
-        if (!initialized) {
+        if (!initialized && !skipConfigInput) {
             return this.init().then(_ => this.config);
         } else {
             return Promise.resolve(this.config);
         }
+    }
+
+    public resetConfig(): void {
+        this.config.clear();
     }
 
     private _initializeApi() {
