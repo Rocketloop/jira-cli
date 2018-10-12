@@ -8,19 +8,33 @@ import moment = require('moment');
 import chrono = require('chrono-node');
 import { displayNumber, displayText } from './display.helper';
 
-
+/**
+ * The main app class
+ */
 export class App {
 
+    /**
+     * The api object used to communicate with Jira
+     */
     api: JiraApi;
 
+    /**
+     * The app's configuration
+     */
     config: Conf;
 
+    /**
+     * The JiraService that abstracts the actual logic to load data from and interact with Jira
+     */
     service: JiraService;
 
     constructor() {
 
     }
 
+    /**
+     * Initialize the application
+     */
     initialize(isLogin: boolean): Promise<App> {
         return this._loadConfig(isLogin).then(() => {
             this._initializeApi();
@@ -29,10 +43,14 @@ export class App {
         });
     }
 
+    /**
+     * Load the backlog of the given project and display it
+     * @param project
+     */
     backlog(project: string) {
         this.service.getSprintsForProject(project).then(sprints => {
-                return sprints.filter(sprint => sprint.state !== 'closed')
-            })
+            return sprints.filter(sprint => sprint.state !== 'closed')
+        })
             .then(sprints => {
                 const table: Array<any> = new CliTable2({
                     head: ['ID', 'Sprint']
@@ -44,13 +62,18 @@ export class App {
             });
     }
 
+    /**
+     * Load the board of the active sprint of the given project and display it
+     * @param project
+     * @param onlyMine
+     */
     board(project: string, onlyMine?: boolean) {
         this.service.getDisplayBoardForProject(project, onlyMine).then(board => {
             const maxWidth = (process.stdout.columns || 80) - board.length;
             const table: Array<any> = new CliTable2({
                 head: board.map(column => column.name),
                 colWidths: board.map(column => {
-                    return Math.round(maxWidth/board.length);
+                    return Math.round(maxWidth / board.length);
                 })
             });
             const maxIssues = board.reduce((max, column) => {
@@ -70,6 +93,11 @@ export class App {
         });
     }
 
+    /**
+     * Load the work log of the given user for the given date ad display it
+     * @param user
+     * @param date
+     */
     worklog(user = 'me', date?: string) {
         const parsedDate = (date) ? moment(chrono.parseDate(date)) : moment();
         this.service.getWorklogsForUser(user, parsedDate).then(worklogs => {
@@ -105,12 +133,22 @@ export class App {
         });
     }
 
+    /**
+     * Log a new work entry to the given issue
+     * @param issue
+     * @param duration
+     * @param start
+     * @param message
+     */
     log(issue: string, duration: number, start = new Date(), message?: string) {
         this.service.addWorkLogToIssue(issue, duration, start, message).then(response => {
             // do nothing
         });
     }
 
+    /**
+     * Guide the user through the initial setup
+     */
     login(force?: boolean): Promise<void> {
         if (!this.config.get('loggedIn') || force) {
             return inquirer.prompt([
@@ -151,10 +189,18 @@ export class App {
         }
     }
 
+    /**
+     * Inititalize the JiraApi interface
+     * @private
+     */
     private _initializeApi() {
         this.api = new JiraApi(this.config.get('api'));
     }
 
+    /**
+     * Initialize the JiraService
+     * @private
+     */
     private _initializeService() {
         this.service = new JiraService(this.api);
     }

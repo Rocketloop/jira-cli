@@ -64,3 +64,7 @@ commander.command('log <issue> <duration>')
          });
 
 commander.parse(process.argv);
+
+if (process.argv.length <= 2 ) {
+    commander.outputHelp();
+}
