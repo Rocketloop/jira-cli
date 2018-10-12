@@ -2,9 +2,19 @@ import * as commander from 'commander';
 import { App } from './app';
 import { parsedDurationToSeconds, parseDuration, parseTimeOfDay } from './time.helper';
 
-function getApp(skipConfigRequest:boolean = false): Promise<App> {
-    return new App().initialize(skipConfigRequest);
+
+function getApp(isLogin = false): Promise<App> {
+    return new App().initialize(isLogin);
 }
+
+commander.command('login')
+         .description('login')
+         .option('-f, --force', 'Force the CLI to overwrite the current login information')
+         .action((cmd) => {
+             getApp(true).then(app => {
+                 app.login(cmd.force);
+             });
+         });
 
 commander.command('backlog <project>').action((project) => {
     getApp().then(app => {
@@ -23,7 +33,9 @@ commander.command('board <project>')
 
 commander.command('worklog')
          .description('Display the worklog of a given user for a given day')
-         .option('-u, --user <user>', 'Specified which user the work logs should be shown for, default to the current user')
+         .option('-u, --user <user>',
+             'Specified which user the work logs should be shown for, default to the current user'
+         )
          .option('-d, --date <date>', 'Specifies which date the work logs should be shown for, defaults to today')
          .action((cmd) => {
              getApp().then(app => {
@@ -69,3 +81,7 @@ commander.command('reset-config')
          });
 
 commander.parse(process.argv);
+
+if (process.argv.length <= 2 ) {
+    commander.outputHelp();
+}
